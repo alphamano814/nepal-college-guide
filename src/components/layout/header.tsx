@@ -1,5 +1,6 @@
 import { GraduationCap, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -29,10 +30,10 @@ export function Header({ onMenuClick, showMenu = false }: HeaderProps) {
           </div>
           
           <nav className="hidden md:flex items-center space-x-6">
-            <a href="/" className="text-foreground hover:text-primary transition-colors">Home</a>
-            <a href="/colleges" className="text-foreground hover:text-primary transition-colors">Colleges</a>
-            <a href="/compare" className="text-foreground hover:text-primary transition-colors">Compare</a>
-            <a href="/news" className="text-foreground hover:text-primary transition-colors">News</a>
+            <Link to="/" className="text-foreground hover:text-primary transition-colors">Home</Link>
+            <Link to="/colleges" className="text-foreground hover:text-primary transition-colors">Colleges</Link>
+            <Link to="/compare" className="text-foreground hover:text-primary transition-colors">Compare</Link>
+            <Link to="/news" className="text-foreground hover:text-primary transition-colors">News</Link>
           </nav>
           
           <div className="flex items-center space-x-2">
