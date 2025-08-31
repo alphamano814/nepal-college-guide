@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/header';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,9 +14,34 @@ import { College } from '@/types/college';
 import { Users, GraduationCap, BookOpen, Settings, Plus, Edit, Trash2 } from 'lucide-react';
 
 export default function Admin() {
+  const navigate = useNavigate();
+  const { user, isAdmin, loading } = useAuth();
   const [colleges, setColleges] = useState<College[]>(mockColleges);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newCollege, setNewCollege] = useState({
+    name: '',
+    location: { city: '', district: '' },
+    affiliation: '',
+    description: ''
+  });
+
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      navigate('/');
+    }
+  }, [user, isAdmin, loading, navigate]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">
+      <p>Loading...</p>
+    </div>;
+  }
+
+  if (!user || !isAdmin) {
+    return null;
+  }
 
   const stats = {
     totalColleges: colleges.length,
@@ -29,7 +56,37 @@ export default function Admin() {
   };
 
   const handleDeleteCollege = (collegeId: string) => {
-    setColleges(prev => prev.filter(c => c.id !== collegeId));
+    if (confirm('Are you sure you want to delete this college?')) {
+      setColleges(prev => prev.filter(c => c.id !== collegeId));
+    }
+  };
+
+  const handleAddCollege = () => {
+    if (newCollege.name && newCollege.location.city && newCollege.location.district) {
+      const college: College = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: newCollege.name,
+        location: newCollege.location,
+        affiliation: newCollege.affiliation as "TU" | "KU" | "PU" | "Purbanchal" | "Pokhara",
+        about: newCollege.description,
+        logo_url: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center',
+        created_at: new Date().toISOString(),
+        programs: [],
+        facilities: [],
+        reviews: [],
+        news: [],
+        averageRating: 0,
+        totalReviews: 0,
+        website: ''
+      };
+      setColleges(prev => [...prev, college]);
+      setNewCollege({ name: '', location: { city: '', district: '' }, affiliation: '', description: '' });
+      setShowAddForm(false);
+    }
+  };
+
+  const handleSaveSettings = () => {
+    alert('Settings saved successfully!');
   };
 
   return (
@@ -106,12 +163,83 @@ export default function Admin() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Manage Colleges</CardTitle>
-                <Button className="bg-gradient-hero hover:opacity-90">
+                <Button 
+                  className="bg-gradient-hero hover:opacity-90"
+                  onClick={() => setShowAddForm(true)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Add College
                 </Button>
               </CardHeader>
               <CardContent>
+                {showAddForm && (
+                  <div className="border border-border rounded-lg p-4 mb-4 bg-muted/50">
+                    <h4 className="font-semibold mb-4">Add New College</h4>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label htmlFor="college-name">College Name</Label>
+                        <Input
+                          id="college-name"
+                          value={newCollege.name}
+                          onChange={(e) => setNewCollege(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Enter college name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="college-affiliation">Affiliation</Label>
+                        <Input
+                          id="college-affiliation"
+                          value={newCollege.affiliation}
+                          onChange={(e) => setNewCollege(prev => ({ ...prev, affiliation: e.target.value }))}
+                          placeholder="e.g., TU, PU, KU"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="college-city">City</Label>
+                        <Input
+                          id="college-city"
+                          value={newCollege.location.city}
+                          onChange={(e) => setNewCollege(prev => ({ 
+                            ...prev, 
+                            location: { ...prev.location, city: e.target.value }
+                          }))}
+                          placeholder="Enter city"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="college-district">District</Label>
+                        <Input
+                          id="college-district"
+                          value={newCollege.location.district}
+                          onChange={(e) => setNewCollege(prev => ({ 
+                            ...prev, 
+                            location: { ...prev.location, district: e.target.value }
+                          }))}
+                          placeholder="Enter district"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <Label htmlFor="college-description">Description</Label>
+                      <Textarea
+                        id="college-description"
+                        value={newCollege.description}
+                        onChange={(e) => setNewCollege(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Enter college description"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleAddCollege} className="bg-gradient-hero hover:opacity-90">
+                        Add College
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-4">
                   {colleges.map((college) => (
                     <div key={college.id} className="border border-border rounded-lg p-4">
@@ -212,7 +340,10 @@ export default function Admin() {
                     <Input id="contact-email" type="email" defaultValue="info@collegeguide.np" />
                   </div>
                   
-                  <Button className="bg-gradient-hero hover:opacity-90">
+                  <Button 
+                    className="bg-gradient-hero hover:opacity-90"
+                    onClick={handleSaveSettings}
+                  >
                     Save Settings
                   </Button>
                 </div>

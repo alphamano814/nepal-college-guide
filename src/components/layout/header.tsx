@@ -1,6 +1,14 @@
-import { GraduationCap, Menu } from 'lucide-react';
+import { GraduationCap, Menu, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -8,6 +16,8 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, showMenu = false }: HeaderProps) {
+  const { user, signOut, isAdmin } = useAuth();
+
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/80">
       <div className="container mx-auto px-4 py-3">
@@ -37,15 +47,42 @@ export function Header({ onMenuClick, showMenu = false }: HeaderProps) {
           </nav>
           
           <div className="flex items-center space-x-2">
-            <Link to="/auth">
-              <Button variant="outline" size="sm">Login</Button>
-            </Link>
-            <Link to="/admin">
-              <Button variant="outline" size="sm">Admin</Button>
-            </Link>
-            <Link to="/auth">
-              <Button size="sm" className="bg-gradient-hero hover:opacity-90">Sign Up</Button>
-            </Link>
+            {user ? (
+              <>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" size="sm">Admin</Button>
+                  </Link>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled>
+                      {user.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="outline" size="sm">Login</Button>
+                </Link>
+                <Link to="/auth">
+                  <Button size="sm" className="bg-gradient-hero hover:opacity-90">Sign Up</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
