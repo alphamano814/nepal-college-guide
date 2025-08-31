@@ -37,8 +37,15 @@ export function Header({ onMenuClick, showMenu = false }: HeaderProps) {
           </nav>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">Login</Button>
-            <Button size="sm" className="bg-gradient-hero hover:opacity-90">Sign Up</Button>
+            <Link to="/auth">
+              <Button variant="outline" size="sm">Login</Button>
+            </Link>
+            <Link to="/admin">
+              <Button variant="outline" size="sm">Admin</Button>
+            </Link>
+            <Link to="/auth">
+              <Button size="sm" className="bg-gradient-hero hover:opacity-90">Sign Up</Button>
+            </Link>
           </div>
         </div>
       </div>

@@ -85,12 +85,6 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
               <span className="text-muted-foreground">Programs: </span>
               <span className="font-medium">{college.programs.length}</span>
             </div>
-            <div className="text-sm">
-              <span className="text-muted-foreground">From: </span>
-              <span className="font-medium text-education-secondary">
-                {college.programs.length > 0 ? formatFees(Math.min(...college.programs.map(p => p.fees))) : 'N/A'}
-              </span>
-            </div>
           </div>
           
           <Button 

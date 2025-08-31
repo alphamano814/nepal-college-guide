@@ -8,6 +8,8 @@ import CollegeDetail from "./pages/CollegeDetail";
 import Compare from "./pages/Compare";
 import Colleges from "./pages/Colleges";
 import News from "./pages/News";
+import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/compare" element={<Compare />} />
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/news" element={<News />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
