@@ -26,7 +26,7 @@ export function SearchBar({ onSearch, placeholder = "Search colleges, programs, 
           placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 pr-4 py-3 text-base bg-card border-border focus:ring-primary focus:border-primary rounded-lg shadow-sm"
+          className="pl-10 pr-4 py-3 text-base bg-card text-card-foreground border-border focus:ring-primary focus:border-primary rounded-lg shadow-sm"
         />
       </div>
       <Button 
