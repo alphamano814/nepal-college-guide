@@ -8,10 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { mockColleges } from '@/data/mockData';
-import { College } from '@/types/college';
-import { Users, GraduationCap, BookOpen, Settings, Plus, Edit, Trash2 } from 'lucide-react';
+import { College, Program, Facility, Faculty, Affiliation } from '@/types/college';
+import { Users, GraduationCap, BookOpen, Settings, Plus, Edit, Trash2, X } from 'lucide-react';
+
+const faculties = ['Management', 'Science', 'Engineering', 'Medical', 'Humanities', 'Law'] as const;
+const affiliations = ['TU', 'KU', 'PU', 'Purbanchal', 'Pokhara'] as const;
+const facilityTypes = ['Hostel', 'Library', 'Transportation', 'Sports', 'Lab', 'Canteen', 'WiFi', 'Parking'] as const;
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -23,8 +28,19 @@ export default function Admin() {
   const [newCollege, setNewCollege] = useState({
     name: '',
     location: { city: '', district: '' },
-    affiliation: '',
-    description: ''
+    affiliation: '' as Affiliation | '',
+    about: '',
+    website: '',
+    phone: '',
+    programs: [] as Program[],
+    facilities: [] as string[]
+  });
+
+  const [newProgram, setNewProgram] = useState({
+    program_name: '',
+    faculty: '' as Faculty | '',
+    duration: 0,
+    fees: 0
   });
 
   useEffect(() => {
@@ -46,12 +62,22 @@ export default function Admin() {
   const stats = {
     totalColleges: colleges.length,
     totalPrograms: colleges.reduce((sum, college) => sum + college.programs.length, 0),
-    totalStudents: "10,000+", // Mock data
+    totalStudents: "10,000+",
     averageRating: (colleges.reduce((sum, college) => sum + college.averageRating, 0) / colleges.length).toFixed(1)
   };
 
   const handleEditCollege = (college: College) => {
     setSelectedCollege(college);
+    setNewCollege({
+      name: college.name,
+      location: college.location,
+      affiliation: college.affiliation,
+      about: college.about,
+      website: college.website || '',
+      phone: college.phone || '',
+      programs: college.programs,
+      facilities: college.facilities.map(f => f.facility_name)
+    });
     setIsEditing(true);
   };
 
@@ -61,27 +87,91 @@ export default function Admin() {
     }
   };
 
-  const handleAddCollege = () => {
-    if (newCollege.name && newCollege.location.city && newCollege.location.district) {
-      const college: College = {
+  const handleAddProgram = () => {
+    if (newProgram.program_name && newProgram.faculty && newProgram.duration && newProgram.fees) {
+      const program: Program = {
         id: Math.random().toString(36).substr(2, 9),
+        college_id: '',
+        program_name: newProgram.program_name,
+        faculty: newProgram.faculty as Faculty,
+        duration: newProgram.duration,
+        fees: newProgram.fees
+      };
+      setNewCollege(prev => ({
+        ...prev,
+        programs: [...prev.programs, program]
+      }));
+      setNewProgram({ program_name: '', faculty: '' as Faculty | '', duration: 0, fees: 0 });
+    }
+  };
+
+  const handleRemoveProgram = (index: number) => {
+    setNewCollege(prev => ({
+      ...prev,
+      programs: prev.programs.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddFacility = (facility: string) => {
+    if (!newCollege.facilities.includes(facility)) {
+      setNewCollege(prev => ({
+        ...prev,
+        facilities: [...prev.facilities, facility]
+      }));
+    }
+  };
+
+  const handleRemoveFacility = (facility: string) => {
+    setNewCollege(prev => ({
+      ...prev,
+      facilities: prev.facilities.filter(f => f !== facility)
+    }));
+  };
+
+  const handleSaveCollege = () => {
+    if (newCollege.name && newCollege.location.city && newCollege.location.district && newCollege.affiliation) {
+      const collegeData: College = {
+        id: isEditing ? selectedCollege!.id : Math.random().toString(36).substr(2, 9),
         name: newCollege.name,
         location: newCollege.location,
-        affiliation: newCollege.affiliation as "TU" | "KU" | "PU" | "Purbanchal" | "Pokhara",
-        about: newCollege.description,
+        affiliation: newCollege.affiliation,
+        about: newCollege.about,
+        website: newCollege.website,
+        phone: newCollege.phone,
         logo_url: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center',
-        created_at: new Date().toISOString(),
-        programs: [],
-        facilities: [],
-        reviews: [],
-        news: [],
-        averageRating: 0,
-        totalReviews: 0,
-        website: ''
+        created_at: isEditing ? selectedCollege!.created_at : new Date().toISOString(),
+        programs: newCollege.programs.map(p => ({ ...p, college_id: isEditing ? selectedCollege!.id : '' })),
+        facilities: newCollege.facilities.map((f, index) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          college_id: isEditing ? selectedCollege!.id : '',
+          facility_name: f as any
+        })),
+        reviews: isEditing ? selectedCollege!.reviews : [],
+        news: isEditing ? selectedCollege!.news : [],
+        averageRating: isEditing ? selectedCollege!.averageRating : 0,
+        totalReviews: isEditing ? selectedCollege!.totalReviews : 0
       };
-      setColleges(prev => [...prev, college]);
-      setNewCollege({ name: '', location: { city: '', district: '' }, affiliation: '', description: '' });
+
+      if (isEditing) {
+        setColleges(prev => prev.map(c => c.id === selectedCollege!.id ? collegeData : c));
+      } else {
+        setColleges(prev => [...prev, collegeData]);
+      }
+
+      // Reset form
+      setNewCollege({
+        name: '',
+        location: { city: '', district: '' },
+        affiliation: '' as Affiliation | '',
+        about: '',
+        website: '',
+        phone: '',
+        programs: [],
+        facilities: []
+      });
       setShowAddForm(false);
+      setIsEditing(false);
+      setSelectedCollege(null);
     }
   };
 
@@ -172,70 +262,259 @@ export default function Admin() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {showAddForm && (
-                  <div className="border border-border rounded-lg p-4 mb-4 bg-muted/50">
-                    <h4 className="font-semibold mb-4">Add New College</h4>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <Label htmlFor="college-name">College Name</Label>
-                        <Input
-                          id="college-name"
-                          value={newCollege.name}
-                          onChange={(e) => setNewCollege(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Enter college name"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="college-affiliation">Affiliation</Label>
-                        <Input
-                          id="college-affiliation"
-                          value={newCollege.affiliation}
-                          onChange={(e) => setNewCollege(prev => ({ ...prev, affiliation: e.target.value }))}
-                          placeholder="e.g., TU, PU, KU"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="college-city">City</Label>
-                        <Input
-                          id="college-city"
-                          value={newCollege.location.city}
-                          onChange={(e) => setNewCollege(prev => ({ 
-                            ...prev, 
-                            location: { ...prev.location, city: e.target.value }
-                          }))}
-                          placeholder="Enter city"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="college-district">District</Label>
-                        <Input
-                          id="college-district"
-                          value={newCollege.location.district}
-                          onChange={(e) => setNewCollege(prev => ({ 
-                            ...prev, 
-                            location: { ...prev.location, district: e.target.value }
-                          }))}
-                          placeholder="Enter district"
-                        />
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <Label htmlFor="college-description">Description</Label>
-                      <Textarea
-                        id="college-description"
-                        value={newCollege.description}
-                        onChange={(e) => setNewCollege(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Enter college description"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={handleAddCollege} className="bg-gradient-hero hover:opacity-90">
-                        Add College
+                {(showAddForm || isEditing) && (
+                  <div className="border border-border rounded-lg p-6 mb-6 bg-muted/50">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold">
+                        {isEditing ? 'Edit College' : 'Add New College'}
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setIsEditing(false);
+                          setSelectedCollege(null);
+                          setNewCollege({
+                            name: '',
+                            location: { city: '', district: '' },
+                            affiliation: '' as Affiliation | '',
+                            about: '',
+                            website: '',
+                            phone: '',
+                            programs: [],
+                            facilities: []
+                          });
+                        }}
+                      >
+                        <X className="w-4 h-4" />
                       </Button>
-                      <Button variant="outline" onClick={() => setShowAddForm(false)}>
-                        Cancel
-                      </Button>
+                    </div>
+
+                    {/* Basic Information */}
+                    <div className="space-y-6">
+                      <div>
+                        <h5 className="font-medium mb-4">Basic Information</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="college-name">College Name *</Label>
+                            <Input
+                              id="college-name"
+                              value={newCollege.name}
+                              onChange={(e) => setNewCollege(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="Enter college name"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="college-affiliation">Affiliated University *</Label>
+                            <Select
+                              value={newCollege.affiliation}
+                              onValueChange={(value) => setNewCollege(prev => ({ ...prev, affiliation: value as any }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select affiliation" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {affiliations.map((affiliation) => (
+                                  <SelectItem key={affiliation} value={affiliation}>
+                                    {affiliation}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="college-city">City *</Label>
+                            <Input
+                              id="college-city"
+                              value={newCollege.location.city}
+                              onChange={(e) => setNewCollege(prev => ({ 
+                                ...prev, 
+                                location: { ...prev.location, city: e.target.value }
+                              }))}
+                              placeholder="Enter city"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="college-district">District *</Label>
+                            <Input
+                              id="college-district"
+                              value={newCollege.location.district}
+                              onChange={(e) => setNewCollege(prev => ({ 
+                                ...prev, 
+                                location: { ...prev.location, district: e.target.value }
+                              }))}
+                              placeholder="Enter district"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="college-phone">Phone Number</Label>
+                            <Input
+                              id="college-phone"
+                              value={newCollege.phone}
+                              onChange={(e) => setNewCollege(prev => ({ ...prev, phone: e.target.value }))}
+                              placeholder="Enter phone number"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="college-website">Website</Label>
+                            <Input
+                              id="college-website"
+                              value={newCollege.website}
+                              onChange={(e) => setNewCollege(prev => ({ ...prev, website: e.target.value }))}
+                              placeholder="Enter website URL"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <Label htmlFor="college-about">About College</Label>
+                          <Textarea
+                            id="college-about"
+                            value={newCollege.about}
+                            onChange={(e) => setNewCollege(prev => ({ ...prev, about: e.target.value }))}
+                            placeholder="Enter college description"
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Programs */}
+                      <div>
+                        <h5 className="font-medium mb-4">Programs</h5>
+                        <div className="border border-border rounded-lg p-4 mb-4">
+                          <h6 className="font-medium mb-3">Add Program</h6>
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div>
+                              <Label htmlFor="program-name">Program Name</Label>
+                              <Input
+                                id="program-name"
+                                value={newProgram.program_name}
+                                onChange={(e) => setNewProgram(prev => ({ ...prev, program_name: e.target.value }))}
+                                placeholder="e.g., BBA"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="program-faculty">Faculty</Label>
+                              <Select
+                                value={newProgram.faculty}
+                                onValueChange={(value) => setNewProgram(prev => ({ ...prev, faculty: value as any }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select faculty" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {faculties.map((faculty) => (
+                                    <SelectItem key={faculty} value={faculty}>
+                                      {faculty}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="program-duration">Duration (Years)</Label>
+                              <Input
+                                id="program-duration"
+                                type="number"
+                                value={newProgram.duration || ''}
+                                onChange={(e) => setNewProgram(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+                                placeholder="e.g., 4"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="program-fees">Fees (NPR)</Label>
+                              <Input
+                                id="program-fees"
+                                type="number"
+                                value={newProgram.fees || ''}
+                                onChange={(e) => setNewProgram(prev => ({ ...prev, fees: parseInt(e.target.value) || 0 }))}
+                                placeholder="e.g., 550000"
+                              />
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={handleAddProgram}
+                            className="mt-3 bg-gradient-hero hover:opacity-90"
+                            size="sm"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Program
+                          </Button>
+                        </div>
+                        
+                        {newCollege.programs.length > 0 && (
+                          <div className="space-y-2">
+                            <h6 className="font-medium">Added Programs</h6>
+                            {newCollege.programs.map((program, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                                <div className="flex items-center space-x-4">
+                                  <Badge>{program.faculty}</Badge>
+                                  <span className="font-medium">{program.program_name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {program.duration} years - NPR {program.fees.toLocaleString()}
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveProgram(index)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Facilities */}
+                      <div>
+                        <h5 className="font-medium mb-4">Facilities</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                          {facilityTypes.map((facility) => (
+                            <Button
+                              key={facility}
+                              variant={newCollege.facilities.includes(facility) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => 
+                                newCollege.facilities.includes(facility) 
+                                  ? handleRemoveFacility(facility)
+                                  : handleAddFacility(facility)
+                              }
+                            >
+                              {facility}
+                            </Button>
+                          ))}
+                        </div>
+                        {newCollege.facilities.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {newCollege.facilities.map((facility) => (
+                              <Badge key={facility} variant="secondary">
+                                {facility}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-4">
+                        <Button 
+                          onClick={handleSaveCollege} 
+                          className="bg-gradient-hero hover:opacity-90"
+                        >
+                          {isEditing ? 'Update College' : 'Add College'}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowAddForm(false);
+                            setIsEditing(false);
+                            setSelectedCollege(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -255,10 +534,18 @@ export default function Admin() {
                             <p className="text-sm text-muted-foreground">
                               {college.location.city}, {college.location.district}
                             </p>
+                            {college.phone && (
+                              <p className="text-sm text-muted-foreground">
+                                📞 {college.phone}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="secondary">{college.affiliation}</Badge>
                               <span className="text-xs text-muted-foreground">
                                 {college.programs.length} programs
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {college.facilities.length} facilities
                               </span>
                             </div>
                           </div>
@@ -293,9 +580,29 @@ export default function Admin() {
                 <CardTitle>Manage Programs</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Program management features coming soon...</p>
+                <div className="space-y-4">
+                  {colleges.map((college) => (
+                    <div key={college.id} className="border border-border rounded-lg p-4">
+                      <h3 className="font-semibold mb-3">{college.name}</h3>
+                      {college.programs.length > 0 ? (
+                        <div className="space-y-2">
+                          {college.programs.map((program) => (
+                            <div key={program.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <div className="flex items-center space-x-4">
+                                <Badge>{program.faculty}</Badge>
+                                <span className="font-medium">{program.program_name}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {program.duration} years - NPR {program.fees.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">No programs added yet</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

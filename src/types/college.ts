@@ -9,6 +9,7 @@ export interface College {
   affiliation: 'TU' | 'KU' | 'PU' | 'Purbanchal' | 'Pokhara';
   about: string;
   website?: string;
+  phone?: string;
   created_at: string;
   programs: Program[];
   facilities: Facility[];

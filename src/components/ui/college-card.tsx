@@ -1,4 +1,4 @@
-import { Star, MapPin, GraduationCap, Heart } from 'lucide-react';
+import { Star, MapPin, GraduationCap, Heart, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,12 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
                 <MapPin className="w-3 h-3 mr-1" />
                 {college.location.city}, {college.location.district}
               </div>
+              {college.phone && (
+                <div className="flex items-center text-sm text-muted-foreground mt-1">
+                  <Phone className="w-3 h-3 mr-1" />
+                  {college.phone}
+                </div>
+              )}
             </div>
           </div>
           {onSave && (
