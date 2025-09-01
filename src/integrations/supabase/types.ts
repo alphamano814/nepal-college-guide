@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      colleges: {
+        Row: {
+          address: string
+          affiliated_university: string
+          created_at: string
+          description: string
+          facilities: string[] | null
+          id: string
+          image_url: string | null
+          name: string
+          phone_number: string
+          programs: Json | null
+          updated_at: string
+          website_link: string | null
+        }
+        Insert: {
+          address: string
+          affiliated_university: string
+          created_at?: string
+          description: string
+          facilities?: string[] | null
+          id?: string
+          image_url?: string | null
+          name: string
+          phone_number: string
+          programs?: Json | null
+          updated_at?: string
+          website_link?: string | null
+        }
+        Update: {
+          address?: string
+          affiliated_university?: string
+          created_at?: string
+          description?: string
+          facilities?: string[] | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          phone_number?: string
+          programs?: Json | null
+          updated_at?: string
+          website_link?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

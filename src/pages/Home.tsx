@@ -1,15 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/header';
 import { SearchBar } from '@/components/ui/search-bar';
 import { FilterChips } from '@/components/ui/filter-chips';
-import { CollegeCard } from '@/components/ui/college-card';
-import { mockColleges } from '@/data/mockData';
-import { College, Faculty, Affiliation } from '@/types/college';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, MapPin, Clock, Star } from 'lucide-react';
+import { TrendingUp, MapPin, Clock, Star, Phone, Globe, GraduationCap } from 'lucide-react';
+
+type College = {
+  id: string;
+  name: string;
+  address: string;
+  affiliated_university: string;
+  description: string;
+  phone_number: string;
+  website_link?: string;
+  image_url?: string;
+  programs: any[];
+  facilities: string[];
+  created_at: string;
+};
+
+type Faculty = 'Management' | 'Science' | 'Engineering' | 'Medical' | 'Humanities' | 'Law';
+type Affiliation = 'TU' | 'KU' | 'PU' | 'Purbanchal' | 'Pokhara';
+
+const faculties = ['Management', 'Science', 'Engineering', 'Medical', 'Humanities', 'Law'] as const;
+const affiliations = ['TU', 'KU', 'PU', 'Purbanchal', 'Pokhara'] as const;
 
 export default function Home() {
   const navigate = useNavigate();
@@ -17,6 +35,31 @@ export default function Home() {
   const [selectedFaculties, setSelectedFaculties] = useState<Faculty[]>([]);
   const [selectedAffiliations, setSelectedAffiliations] = useState<Affiliation[]>([]);
   const [savedColleges, setSavedColleges] = useState<string[]>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchColleges();
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('colleges')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setColleges((data || []).map(item => ({
+        ...item,
+        programs: Array.isArray(item.programs) ? item.programs : []
+      })));
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -46,17 +89,17 @@ export default function Home() {
     );
   };
 
-  const filteredColleges = mockColleges.filter(college => {
+  const filteredColleges = colleges.filter(college => {
     const matchesSearch = !searchQuery || 
       college.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      college.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      college.programs.some(p => p.program_name.toLowerCase().includes(searchQuery.toLowerCase()));
+      college.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      college.programs.some((p: any) => p.name?.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesFaculty = selectedFaculties.length === 0 || 
-      college.programs.some(p => selectedFaculties.includes(p.faculty));
+      college.programs.some((p: any) => selectedFaculties.includes(p.faculty));
     
     const matchesAffiliation = selectedAffiliations.length === 0 || 
-      selectedAffiliations.includes(college.affiliation);
+      selectedAffiliations.includes(college.affiliated_university as Affiliation);
     
     return matchesSearch && matchesFaculty && matchesAffiliation;
   });
@@ -149,24 +192,114 @@ export default function Home() {
                     {searchQuery ? `Search Results for "${searchQuery}"` : 'Featured Colleges'}
                   </h2>
                   <p className="text-muted-foreground">
-                    {filteredColleges.length} colleges found
+                    {loading ? 'Loading...' : `${filteredColleges.length} colleges found`}
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredColleges.map((college) => (
-                  <CollegeCard
-                    key={college.id}
-                    college={college}
-                    onViewDetails={handleViewDetails}
-                    onSave={handleSaveCollege}
-                    isSaved={savedColleges.includes(college.id)}
-                  />
-                ))}
-              </div>
+              {loading ? (
+                <div className="text-center py-12">Loading colleges...</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredColleges.map((college) => (
+                    <Card key={college.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-0">
+                        {college.image_url && (
+                          <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                            <img 
+                              src={college.image_url} 
+                              alt={college.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold text-lg mb-1">{college.name}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                <MapPin className="h-4 w-4" />
+                                {college.address}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                <GraduationCap className="h-4 w-4" />
+                                {college.affiliated_university}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Phone className="h-4 w-4" />
+                                {college.phone_number}
+                              </div>
+                            </div>
+                          </div>
 
-              {filteredColleges.length === 0 && (
+                          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                            {college.description}
+                          </p>
+
+                          {/* Programs */}
+                          {college.programs.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm font-medium mb-2">Programs:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {college.programs.slice(0, 3).map((program: any, index: number) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {program.name} - {program.fee}
+                                  </Badge>
+                                ))}
+                                {college.programs.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{college.programs.length - 3} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Facilities */}
+                          {college.facilities.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm font-medium mb-2">Facilities:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {college.facilities.slice(0, 4).map((facility: string, index: number) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {facility}
+                                  </Badge>
+                                ))}
+                                {college.facilities.length > 4 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{college.facilities.length - 4} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-2">
+                              {college.website_link && (
+                                <Button variant="outline" size="sm" asChild>
+                                  <a href={college.website_link} target="_blank" rel="noopener noreferrer">
+                                    <Globe className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
+                            <Button 
+                              size="sm"
+                              onClick={() => handleViewDetails(college)}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {!loading && filteredColleges.length === 0 && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                     <MapPin className="w-8 h-8 text-muted-foreground" />
@@ -185,7 +318,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">1000+</div>
+              <div className="text-3xl font-bold text-primary mb-2">{colleges.length}+</div>
               <div className="text-muted-foreground">Colleges Listed</div>
             </div>
             <div className="text-center">
