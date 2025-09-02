@@ -1,20 +1,90 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockColleges } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Star, Heart, Share2, Globe, Phone, Mail } from 'lucide-react';
 import { College } from '@/types/college';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CollegeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isSaved, setIsSaved] = useState(false);
-  
-  const college = mockColleges.find(c => c.id === id);
+  const [college, setCollege] = useState<College | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      fetchCollegeDetails();
+    }
+  }, [id]);
+
+  const fetchCollegeDetails = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('colleges')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const mappedCollege: College = {
+          id: data.id,
+          name: data.name,
+          logo_url: data.image_url || 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center',
+          location: {
+            city: data.address.split(',')[0]?.trim() || '',
+            district: data.address.split(',')[1]?.trim() || ''
+          },
+          affiliation: data.affiliated_university,
+          about: data.description,
+          website: data.website_link,
+          phone: data.phone_number,
+          created_at: data.created_at,
+          programs: data.programs || [],
+          facilities: (data.facilities || []).map((facility: string, index: number) => ({
+            id: `${data.id}-facility-${index}`,
+            college_id: data.id,
+            facility_name: facility
+          })),
+          reviews: [],
+          news: [],
+          averageRating: 4.2,
+          totalReviews: 156
+        };
+        setCollege(mappedCollege);
+      }
+    } catch (error) {
+      console.error('Error fetching college details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch college details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-lg text-muted-foreground">Loading college details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!college) {
     return (
@@ -41,7 +111,10 @@ export default function CollegeDetail() {
     return colors[affiliation as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const formatFees = (amount: number) => {
+  const formatFees = (amount: string | number) => {
+    if (typeof amount === 'string') {
+      return amount;
+    }
     if (amount >= 100000) {
       return `Rs. ${(amount / 100000).toFixed(1)}L`;
     }
@@ -135,19 +208,28 @@ export default function CollegeDetail() {
                   {college.about}
                 </p>
                 
-                {college.website && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <Globe className="w-4 h-4 text-muted-foreground" />
-                    <a 
-                      href={college.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Visit Website
-                    </a>
-                  </div>
-                )}
+                <div className="space-y-4">
+                  {college.website && (
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-primary" />
+                      <a 
+                        href={college.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Visit Website
+                      </a>
+                    </div>
+                  )}
+                  
+                  {college.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-primary" />
+                      <span className="text-muted-foreground">{college.phone}</span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -159,15 +241,17 @@ export default function CollegeDetail() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {college.programs.map((program, index) => (
+                  {college.programs.map((program: any, index) => (
                     <div key={index} className="border border-border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-foreground">{program.program_name}</h3>
+                        <h3 className="font-semibold text-foreground">{program.name || program.program_name}</h3>
                         <Badge variant="secondary">{program.faculty}</Badge>
                       </div>
                       <div className="flex justify-between items-center text-sm text-muted-foreground">
-                        <span>Duration: {program.duration} years</span>
-                        <span className="font-semibold text-primary">{formatFees(program.fees)}</span>
+                        <span>Duration: {program.duration || 'N/A'}</span>
+                        <span className="font-semibold text-primary">
+                          {program.fee || formatFees(program.fees || 0)}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -188,7 +272,9 @@ export default function CollegeDetail() {
                       <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                         <span className="text-primary font-semibold text-sm">✓</span>
                       </div>
-                      <span className="text-foreground">{facility.facility_name}</span>
+                      <span className="text-foreground">
+                        {typeof facility === 'string' ? facility : facility.facility_name}
+                      </span>
                     </div>
                   ))}
                 </div>
