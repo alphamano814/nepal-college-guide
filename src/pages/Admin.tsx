@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { mockColleges } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { College, Program, Facility, Faculty, Affiliation } from '@/types/college';
 import { Users, GraduationCap, BookOpen, Settings, Plus, Edit, Trash2, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const faculties = ['Management', 'Science', 'Engineering', 'Medical', 'Humanities', 'Law'] as const;
 const affiliations = ['TU', 'KU', 'PU', 'Purbanchal', 'Pokhara'] as const;
@@ -21,7 +22,8 @@ const facilityTypes = ['Hostel', 'Library', 'Transportation', 'Sports', 'Lab', '
 export default function Admin() {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
-  const [colleges, setColleges] = useState<College[]>(mockColleges);
+  const { toast } = useToast();
+  const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -48,6 +50,57 @@ export default function Admin() {
       navigate('/');
     }
   }, [user, isAdmin, loading, navigate]);
+
+  useEffect(() => {
+    if (user && isAdmin) {
+      fetchColleges();
+    }
+  }, [user, isAdmin]);
+
+  const fetchColleges = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('colleges')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const mappedColleges: College[] = (data as any[]).map((college: any) => ({
+        id: college.id,
+        name: college.name,
+        logo_url: college.image_url || undefined,
+        location: {
+          city: college.address.split(',')[0] || '',
+          district: college.address.split(',')[1] || ''
+        },
+        affiliation: college.affiliated_university as Affiliation,
+        about: college.description,
+        website: college.website_link,
+        phone: college.phone_number,
+        created_at: college.created_at,
+        programs: college.programs || [],
+        facilities: (college.facilities || []).map((facility: string, index: number) => ({
+          id: `${college.id}-facility-${index}`,
+          college_id: college.id,
+          facility_name: facility as any
+        })),
+        reviews: [],
+        news: [],
+        averageRating: 4.5,
+        totalReviews: 10
+      }));
+
+      setColleges(mappedColleges);
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch colleges",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -81,9 +134,29 @@ export default function Admin() {
     setIsEditing(true);
   };
 
-  const handleDeleteCollege = (collegeId: string) => {
+  const handleDeleteCollege = async (collegeId: string) => {
     if (confirm('Are you sure you want to delete this college?')) {
-      setColleges(prev => prev.filter(c => c.id !== collegeId));
+      try {
+        const { error } = await (supabase as any)
+          .from('colleges')
+          .delete()
+          .eq('id', collegeId);
+
+        if (error) throw error;
+
+        setColleges(prev => prev.filter(c => c.id !== collegeId));
+        toast({
+          title: "Success",
+          description: "College deleted successfully",
+        });
+      } catch (error) {
+        console.error('Error deleting college:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete college",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -128,50 +201,71 @@ export default function Admin() {
     }));
   };
 
-  const handleSaveCollege = () => {
+  const handleSaveCollege = async () => {
     if (newCollege.name && newCollege.location.city && newCollege.location.district && newCollege.affiliation) {
-      const collegeData: College = {
-        id: isEditing ? selectedCollege!.id : Math.random().toString(36).substr(2, 9),
-        name: newCollege.name,
-        location: newCollege.location,
-        affiliation: newCollege.affiliation,
-        about: newCollege.about,
-        website: newCollege.website,
-        phone: newCollege.phone,
-        logo_url: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center',
-        created_at: isEditing ? selectedCollege!.created_at : new Date().toISOString(),
-        programs: newCollege.programs.map(p => ({ ...p, college_id: isEditing ? selectedCollege!.id : '' })),
-        facilities: newCollege.facilities.map((f, index) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          college_id: isEditing ? selectedCollege!.id : '',
-          facility_name: f as any
-        })),
-        reviews: isEditing ? selectedCollege!.reviews : [],
-        news: isEditing ? selectedCollege!.news : [],
-        averageRating: isEditing ? selectedCollege!.averageRating : 0,
-        totalReviews: isEditing ? selectedCollege!.totalReviews : 0
-      };
+      try {
+        const collegeData = {
+          name: newCollege.name,
+          description: newCollege.about,
+          phone_number: newCollege.phone,
+          website_link: newCollege.website,
+          image_url: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center',
+          facilities: newCollege.facilities,
+          address: `${newCollege.location.city}, ${newCollege.location.district}`,
+          affiliated_university: newCollege.affiliation,
+          programs: newCollege.programs
+        };
 
-      if (isEditing) {
-        setColleges(prev => prev.map(c => c.id === selectedCollege!.id ? collegeData : c));
-      } else {
-        setColleges(prev => [...prev, collegeData]);
+        if (isEditing && selectedCollege) {
+          const { error } = await (supabase as any)
+            .from('colleges')
+            .update(collegeData)
+            .eq('id', selectedCollege.id);
+
+          if (error) throw error;
+
+          toast({
+            title: "Success",
+            description: "College updated successfully",
+          });
+        } else {
+          const { error } = await (supabase as any)
+            .from('colleges')
+            .insert([collegeData]);
+
+          if (error) throw error;
+
+          toast({
+            title: "Success",
+            description: "College added successfully",
+          });
+        }
+
+        // Refresh the colleges list
+        await fetchColleges();
+
+        // Reset form
+        setNewCollege({
+          name: '',
+          location: { city: '', district: '' },
+          affiliation: '' as Affiliation | '',
+          about: '',
+          website: '',
+          phone: '',
+          programs: [],
+          facilities: []
+        });
+        setShowAddForm(false);
+        setIsEditing(false);
+        setSelectedCollege(null);
+      } catch (error) {
+        console.error('Error saving college:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save college",
+          variant: "destructive",
+        });
       }
-
-      // Reset form
-      setNewCollege({
-        name: '',
-        location: { city: '', district: '' },
-        affiliation: '' as Affiliation | '',
-        about: '',
-        website: '',
-        phone: '',
-        programs: [],
-        facilities: []
-      });
-      setShowAddForm(false);
-      setIsEditing(false);
-      setSelectedCollege(null);
     }
   };
 

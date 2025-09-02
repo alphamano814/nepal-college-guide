@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/header';
 import { SearchBar } from '@/components/ui/search-bar';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { CollegeCard } from '@/components/ui/college-card';
-import { mockColleges } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { College, Faculty, Affiliation } from '@/types/college';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,54 @@ export default function Home() {
   const [selectedFaculties, setSelectedFaculties] = useState<Faculty[]>([]);
   const [selectedAffiliations, setSelectedAffiliations] = useState<Affiliation[]>([]);
   const [savedColleges, setSavedColleges] = useState<string[]>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchColleges();
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('colleges')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const mappedColleges: College[] = (data as any[]).map((college: any) => ({
+        id: college.id,
+        name: college.name,
+        logo_url: college.image_url || undefined,
+        location: {
+          city: college.address.split(',')[0]?.trim() || '',
+          district: college.address.split(',')[1]?.trim() || ''
+        },
+        affiliation: college.affiliated_university as Affiliation,
+        about: college.description,
+        website: college.website_link,
+        phone: college.phone_number,
+        created_at: college.created_at,
+        programs: college.programs || [],
+        facilities: (college.facilities || []).map((facility: string, index: number) => ({
+          id: `${college.id}-facility-${index}`,
+          college_id: college.id,
+          facility_name: facility as any
+        })),
+        reviews: [],
+        news: [],
+        averageRating: 4.5,
+        totalReviews: 10
+      }));
+
+      setColleges(mappedColleges);
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -46,7 +94,7 @@ export default function Home() {
     );
   };
 
-  const filteredColleges = mockColleges.filter(college => {
+  const filteredColleges = colleges.filter(college => {
     const matchesSearch = !searchQuery || 
       college.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       college.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,15 +203,21 @@ export default function Home() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredColleges.map((college) => (
-                  <CollegeCard
-                    key={college.id}
-                    college={college}
-                    onViewDetails={handleViewDetails}
-                    onSave={handleSaveCollege}
-                    isSaved={savedColleges.includes(college.id)}
-                  />
-                ))}
+                {loading ? (
+                  <div className="col-span-2 text-center py-12">
+                    <div className="text-lg text-muted-foreground">Loading colleges...</div>
+                  </div>
+                ) : (
+                  filteredColleges.map((college) => (
+                    <CollegeCard
+                      key={college.id}
+                      college={college}
+                      onViewDetails={handleViewDetails}
+                      onSave={handleSaveCollege}
+                      isSaved={savedColleges.includes(college.id)}
+                    />
+                  ))
+                )}
               </div>
 
               {filteredColleges.length === 0 && (
