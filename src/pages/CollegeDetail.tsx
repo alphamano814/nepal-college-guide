@@ -26,11 +26,14 @@ export default function CollegeDetail() {
 
   const fetchCollegeDetails = async () => {
     try {
+      console.log('Fetching college with ID:', id);
       const { data, error } = await (supabase as any)
         .from('colleges')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
+
+      console.log('Query result:', { data, error });
 
       if (error) throw error;
 
