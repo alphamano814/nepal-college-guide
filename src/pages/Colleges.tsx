@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/header';
 import { SearchBar } from '@/components/ui/search-bar';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { CollegeCard } from '@/components/ui/college-card';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { mockColleges } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { College, Faculty, Affiliation } from '@/types/college';
-import { MapPin } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, MapPin, Clock, Star } from 'lucide-react';
 
 export default function Colleges() {
   const navigate = useNavigate();
@@ -16,6 +17,54 @@ export default function Colleges() {
   const [selectedFaculties, setSelectedFaculties] = useState<Faculty[]>([]);
   const [selectedAffiliations, setSelectedAffiliations] = useState<Affiliation[]>([]);
   const [savedColleges, setSavedColleges] = useState<string[]>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchColleges();
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('colleges')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const mappedColleges: College[] = (data as any[]).map((college: any) => ({
+        id: college.id,
+        name: college.name,
+        logo_url: college.image_url || undefined,
+        location: {
+          city: college.address.split(',')[0]?.trim() || '',
+          district: college.address.split(',')[1]?.trim() || ''
+        },
+        affiliation: college.affiliated_university as Affiliation,
+        about: college.description,
+        website: college.website_link,
+        phone: college.phone_number,
+        created_at: college.created_at,
+        programs: college.programs || [],
+        facilities: (college.facilities || []).map((facility: string, index: number) => ({
+          id: `${college.id}-facility-${index}`,
+          college_id: college.id,
+          facility_name: facility as any
+        })),
+        reviews: [],
+        news: [],
+        averageRating: 4.5,
+        totalReviews: 10
+      }));
+
+      setColleges(mappedColleges);
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -49,7 +98,7 @@ export default function Colleges() {
     navigate(`/college/${college.id}`);
   };
 
-  const filteredColleges = mockColleges.filter(college => {
+  const filteredColleges = colleges.filter(college => {
     const matchesSearch = !searchQuery || 
       college.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       college.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,14 +118,14 @@ export default function Colleges() {
       <Header />
       
       {/* Search Section */}
-      <section className="bg-gradient-hero text-white py-12">
+      <section className="bg-gradient-hero text-white py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-5xl font-bold mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
               All Colleges in Nepal
             </h1>
-            <p className="text-lg md:text-xl mb-8 text-white/90">
-              Discover and compare colleges across Nepal
+            <p className="text-xl md:text-2xl mb-8 text-white/90">
+              Discover and compare colleges across Nepal to find your perfect match
             </p>
             
             <div className="max-w-2xl mx-auto">
@@ -84,6 +133,21 @@ export default function Colleges() {
                 onSearch={handleSearch}
                 placeholder="Search colleges, programs, or locations..."
               />
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
+              <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                <TrendingUp className="w-4 h-4 mr-1" />
+                Trending: Engineering
+              </Badge>
+              <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                <Star className="w-4 h-4 mr-1" />
+                Top Rated: Medical
+              </Badge>
+              <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                <Clock className="w-4 h-4 mr-1" />
+                Admission Open
+              </Badge>
             </div>
           </div>
         </div>
@@ -139,18 +203,24 @@ export default function Colleges() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredColleges.map((college) => (
-                  <CollegeCard
-                    key={college.id}
-                    college={college}
-                    onViewDetails={handleViewDetails}
-                    onSave={handleSaveCollege}
-                    isSaved={savedColleges.includes(college.id)}
-                  />
-                ))}
+                {loading ? (
+                  <div className="col-span-2 text-center py-12">
+                    <div className="text-lg text-muted-foreground">Loading colleges...</div>
+                  </div>
+                ) : (
+                  filteredColleges.map((college) => (
+                    <CollegeCard
+                      key={college.id}
+                      college={college}
+                      onViewDetails={handleViewDetails}
+                      onSave={handleSaveCollege}
+                      isSaved={savedColleges.includes(college.id)}
+                    />
+                  ))
+                )}
               </div>
 
-              {filteredColleges.length === 0 && (
+              {filteredColleges.length === 0 && !loading && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                     <MapPin className="w-8 h-8 text-muted-foreground" />
@@ -159,6 +229,30 @@ export default function Colleges() {
                   <p className="text-muted-foreground">Try adjusting your search criteria or filters</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="bg-muted py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary mb-2">1000+</div>
+              <div className="text-muted-foreground">Colleges Listed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary mb-2">50+</div>
+              <div className="text-muted-foreground">Programs Available</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary mb-2">10K+</div>
+              <div className="text-muted-foreground">Students Helped</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary mb-2">75+</div>
+              <div className="text-muted-foreground">Districts Covered</div>
             </div>
           </div>
         </div>
