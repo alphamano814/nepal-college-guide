@@ -544,9 +544,9 @@ export default function Admin() {
                                 <div className="flex items-center space-x-4">
                                   <Badge>{program.faculty}</Badge>
                                   <span className="font-medium">{program.program_name}</span>
-                                  <span className="text-sm text-muted-foreground">
-                                    {program.duration} years - NPR {program.fees.toLocaleString()}
-                                  </span>
+                                   <span className="text-sm text-muted-foreground">
+                                     {program.duration} years - NPR {(program.fees || 0).toLocaleString()}
+                                   </span>
                                 </div>
                                 <Button
                                   variant="ghost"
@@ -685,9 +685,9 @@ export default function Admin() {
                               <div className="flex items-center space-x-4">
                                 <Badge>{program.faculty}</Badge>
                                 <span className="font-medium">{program.program_name}</span>
-                                <span className="text-sm text-muted-foreground">
-                                  {program.duration} years - NPR {program.fees.toLocaleString()}
-                                </span>
+                                 <span className="text-sm text-muted-foreground">
+                                   {program.duration} years - NPR {(program.fees || 0).toLocaleString()}
+                                 </span>
                               </div>
                             </div>
                           ))}
