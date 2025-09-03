@@ -100,12 +100,12 @@ export default function Colleges() {
 
   const filteredColleges = colleges.filter(college => {
     const matchesSearch = !searchQuery || 
-      college.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      college.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      college.programs.some(p => p.program_name.toLowerCase().includes(searchQuery.toLowerCase()));
+      (college.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (college.location?.city?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      college.programs?.some(p => (p.program_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()));
     
     const matchesFaculty = selectedFaculties.length === 0 || 
-      college.programs.some(p => selectedFaculties.includes(p.faculty));
+      college.programs?.some(p => selectedFaculties.includes(p.faculty));
     
     const matchesAffiliation = selectedAffiliations.length === 0 || 
       selectedAffiliations.includes(college.affiliation);
