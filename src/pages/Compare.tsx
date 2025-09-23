@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { mockColleges } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { College } from '@/types/college';
 import { Search, X, Star, MapPin } from 'lucide-react';
 
@@ -12,8 +12,64 @@ export default function Compare() {
   const [selectedColleges, setSelectedColleges] = useState<College[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [allColleges, setAllColleges] = useState<College[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredColleges = mockColleges.filter(college =>
+  useEffect(() => {
+    fetchColleges();
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('colleges')
+        .select('*');
+
+      if (error) throw error;
+
+      const mappedColleges: College[] = data.map(college => ({
+        id: college.id,
+        name: college.name,
+        logo_url: college.image_url || '',
+        location: {
+          city: college.address.split(',')[0] || college.address,
+          district: college.address.split(',')[1] || 'Unknown'
+        },
+        affiliation: college.affiliated_university as College['affiliation'],
+        about: college.description,
+        website: college.website_link || '',
+        phone: college.phone_number || '',
+        created_at: college.created_at,
+        programs: Array.isArray(college.programs) 
+          ? (college.programs as any[]).map((program: any, index: number) => ({
+              id: `${college.id}-program-${index}`,
+              college_id: college.id,
+              program_name: program.name || program.program_name || 'Unknown Program',
+              faculty: program.faculty || 'Management',
+              duration: program.duration || 4,
+              fees: program.fees || 0
+            }))
+          : [],
+        facilities: (college.facilities || []).map((facility: string, index: number) => ({
+          id: `${college.id}-${index}`,
+          college_id: college.id,
+          facility_name: facility as any
+        })),
+        reviews: [],
+        news: [],
+        averageRating: 4.0,
+        totalReviews: 0
+      }));
+
+      setAllColleges(mappedColleges);
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredColleges = allColleges.filter(college =>
     college.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
     !selectedColleges.find(selected => selected.id === college.id)
   );
@@ -38,6 +94,9 @@ export default function Compare() {
   };
 
   const getMinMaxFees = (college: College) => {
+    if (!college.programs || college.programs.length === 0) {
+      return { min: 0, max: 0 };
+    }
     const fees = college.programs.map(p => p.fees);
     return {
       min: Math.min(...fees),
@@ -113,7 +172,13 @@ export default function Compare() {
         )}
 
         {/* Comparison Table */}
-        {selectedColleges.length > 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-muted-foreground">Loading colleges...</p>
+            </CardContent>
+          </Card>
+        ) : selectedColleges.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {selectedColleges.map(college => {
               const { min, max } = getMinMaxFees(college);
@@ -158,26 +223,31 @@ export default function Compare() {
                     
                     <div>
                       <h4 className="font-medium mb-2">Programs</h4>
-                      <p className="text-sm text-muted-foreground">{college.programs.length} programs available</p>
+                      <p className="text-sm text-muted-foreground">{college.programs?.length || 0} programs available</p>
                     </div>
                     
                     <div>
                       <h4 className="font-medium mb-2">Fee Range</h4>
-                      <p className="text-sm">{formatFees(min)} - {formatFees(max)}</p>
+                      <p className="text-sm">
+                        {min === 0 && max === 0 ? 'Not specified' : `${formatFees(min)} - ${formatFees(max)}`}
+                      </p>
                     </div>
                     
                     <div>
                       <h4 className="font-medium mb-2">Facilities</h4>
                       <div className="flex flex-wrap gap-1">
-                        {college.facilities.slice(0, 3).map((facility, index) => (
+                        {college.facilities?.slice(0, 3).map((facility, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
                             {facility.facility_name}
                           </Badge>
                         ))}
-                        {college.facilities.length > 3 && (
+                        {(college.facilities?.length || 0) > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{college.facilities.length - 3} more
+                            +{(college.facilities?.length || 0) - 3} more
                           </Badge>
+                        )}
+                        {(!college.facilities || college.facilities.length === 0) && (
+                          <p className="text-sm text-muted-foreground">No facilities listed</p>
                         )}
                       </div>
                     </div>
