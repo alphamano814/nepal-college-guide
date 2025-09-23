@@ -35,7 +35,8 @@ export default function Admin() {
     website: '',
     phone: '',
     programs: [] as Program[],
-    facilities: [] as string[]
+    facilities: [] as string[],
+    image: null as File | null
   });
 
   const [newProgram, setNewProgram] = useState({
@@ -129,7 +130,8 @@ export default function Admin() {
       website: college.website || '',
       phone: college.phone || '',
       programs: college.programs,
-      facilities: college.facilities.map(f => f.facility_name)
+      facilities: college.facilities.map(f => f.facility_name),
+      image: null
     });
     setIsEditing(true);
   };
@@ -201,15 +203,54 @@ export default function Admin() {
     }));
   };
 
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    try {
+      // Generate a unique filename using college name and timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${newCollege.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('college-images')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get the public URL for the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('college-images')
+        .getPublicUrl(data.path);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const handleSaveCollege = async () => {
     if (newCollege.name && newCollege.location.city && newCollege.location.district && newCollege.affiliation) {
       try {
+        let imageUrl = 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center';
+        
+        // Upload image if a new file is selected
+        if (newCollege.image) {
+          const uploadedImageUrl = await handleImageUpload(newCollege.image);
+          if (uploadedImageUrl) {
+            imageUrl = uploadedImageUrl;
+          }
+        }
+
         const collegeData = {
           name: newCollege.name,
           description: newCollege.about,
           phone_number: newCollege.phone,
           website_link: newCollege.website,
-          image_url: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=200&h=200&fit=crop&crop=center',
+          image_url: imageUrl,
           facilities: newCollege.facilities,
           address: `${newCollege.location.city}, ${newCollege.location.district}`,
           affiliated_university: newCollege.affiliation,
@@ -253,7 +294,8 @@ export default function Admin() {
           website: '',
           phone: '',
           programs: [],
-          facilities: []
+          facilities: [],
+          image: null
         });
         setShowAddForm(false);
         setIsEditing(false);
@@ -377,7 +419,8 @@ export default function Admin() {
                             website: '',
                             phone: '',
                             programs: [],
-                            facilities: []
+                            facilities: [],
+                            image: null
                           });
                         }}
                       >
@@ -458,6 +501,22 @@ export default function Admin() {
                               onChange={(e) => setNewCollege(prev => ({ ...prev, website: e.target.value }))}
                               placeholder="Enter website URL"
                             />
+                          </div>
+                          <div>
+                            <Label htmlFor="college-image">College Image</Label>
+                            <Input
+                              id="college-image"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                setNewCollege(prev => ({ ...prev, image: file || null }));
+                              }}
+                              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                            />
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Upload a college image (JPG, PNG, etc.)
+                            </p>
                           </div>
                         </div>
                         <div className="mt-4">
