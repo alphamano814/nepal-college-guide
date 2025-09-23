@@ -75,7 +75,7 @@ export default function Compare() {
   );
 
   const addCollege = (college: College) => {
-    if (selectedColleges.length < 3) {
+    if (selectedColleges.length < 10) {
       setSelectedColleges([...selectedColleges, college]);
       setSearchQuery('');
       setShowSearch(false);
@@ -111,11 +111,11 @@ export default function Compare() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Compare Colleges</h1>
-          <p className="text-muted-foreground">Select up to 3 colleges to compare side by side</p>
+          <p className="text-muted-foreground">Select up to 10 colleges to compare side by side</p>
         </div>
 
         {/* Add College Section */}
-        {selectedColleges.length < 3 && (
+        {selectedColleges.length < 10 && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Add College to Compare</CardTitle>
@@ -179,7 +179,7 @@ export default function Compare() {
             </CardContent>
           </Card>
         ) : selectedColleges.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {selectedColleges.map(college => {
               const { min, max } = getMinMaxFees(college);
               return (
