@@ -27,6 +27,7 @@ export default function Admin() {
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [customFacility, setCustomFacility] = useState('');
   const [newCollege, setNewCollege] = useState({
     name: '',
     location: { city: '', district: '' },
@@ -203,6 +204,17 @@ export default function Admin() {
     }));
   };
 
+  const handleAddCustomFacility = () => {
+    const trimmedFacility = customFacility.trim();
+    if (trimmedFacility && !newCollege.facilities.includes(trimmedFacility)) {
+      setNewCollege(prev => ({
+        ...prev,
+        facilities: [...prev.facilities, trimmedFacility]
+      }));
+      setCustomFacility('');
+    }
+  };
+
   const handleImageUpload = async (file: File): Promise<string | null> => {
     try {
       // Generate a unique filename using college name and timestamp
@@ -286,6 +298,7 @@ export default function Admin() {
         await fetchColleges();
 
         // Reset form
+        setCustomFacility('');
         setNewCollege({
           name: '',
           location: { city: '', district: '' },
@@ -411,6 +424,7 @@ export default function Admin() {
                           setShowAddForm(false);
                           setIsEditing(false);
                           setSelectedCollege(null);
+                          setCustomFacility('');
                           setNewCollege({
                             name: '',
                             location: { city: '', district: '' },
@@ -639,11 +653,45 @@ export default function Admin() {
                             </Button>
                           ))}
                         </div>
+                        
+                        {/* Custom Facility Input */}
+                        <div className="flex gap-2 mb-4">
+                          <Input
+                            placeholder="Add custom facility..."
+                            value={customFacility}
+                            onChange={(e) => setCustomFacility(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomFacility();
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            onClick={handleAddCustomFacility}
+                            disabled={!customFacility.trim()}
+                            size="sm"
+                            className="px-4"
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                        
                         {newCollege.facilities.length > 0 && (
                           <div className="flex flex-wrap gap-2">
-                            {newCollege.facilities.map((facility) => (
-                              <Badge key={facility} variant="secondary">
+                            {newCollege.facilities.map((facility, index) => (
+                              <Badge key={`${facility}-${index}`} variant="secondary" className="flex items-center gap-1">
                                 {facility}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveFacility(facility)}
+                                  className="h-4 w-4 p-0 hover:bg-transparent"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
                               </Badge>
                             ))}
                           </div>
