@@ -37,8 +37,16 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center overflow-hidden">
+              {college.logo_url ? (
+                <img 
+                  src={college.logo_url} 
+                  alt={`${college.name} logo`}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+                <GraduationCap className="w-6 h-6 text-primary" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
