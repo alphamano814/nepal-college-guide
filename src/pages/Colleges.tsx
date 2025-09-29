@@ -99,10 +99,21 @@ export default function Colleges() {
   };
 
   const filteredColleges = colleges.filter(college => {
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
-      (college.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (college.location?.city?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      college.programs?.some(p => (p.program_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()));
+      (college.name?.toLowerCase() || '').includes(searchLower) ||
+      (college.location?.city?.toLowerCase() || '').includes(searchLower) ||
+      (college.location?.district?.toLowerCase() || '').includes(searchLower) ||
+      (college.about?.toLowerCase() || '').includes(searchLower) ||
+      (college.affiliation?.toLowerCase() || '').includes(searchLower) ||
+      college.programs?.some(p => 
+        (p.program_name?.toLowerCase() || '').includes(searchLower) ||
+        (p.faculty?.toLowerCase() || '').includes(searchLower) ||
+        p.fees?.toString().includes(searchQuery)
+      ) ||
+      college.facilities?.some(f => 
+        (f.facility_name?.toLowerCase() || '').includes(searchLower)
+      );
     
     const matchesFaculty = selectedFaculties.length === 0 || 
       college.programs?.some(p => selectedFaculties.includes(p.faculty));
