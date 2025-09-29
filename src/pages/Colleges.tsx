@@ -100,6 +100,16 @@ export default function Colleges() {
 
   const filteredColleges = colleges.filter(college => {
     const searchLower = searchQuery.toLowerCase();
+    
+    // Debug logging
+    if (searchQuery) {
+      console.log('Searching for:', searchQuery);
+      console.log('College:', college.name);
+      console.log('City:', college.location?.city);
+      console.log('District:', college.location?.district);
+      console.log('Address from DB:', college);
+    }
+    
     const matchesSearch = !searchQuery || 
       (college.name?.toLowerCase() || '').includes(searchLower) ||
       (college.location?.city?.toLowerCase() || '').includes(searchLower) ||
