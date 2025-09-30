@@ -15,7 +15,8 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
+const rawBase = import.meta.env.BASE_URL || '/';
+const basename = rawBase !== '/' ? rawBase.replace(/\/$/, '') : undefined;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

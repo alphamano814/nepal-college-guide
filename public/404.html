@@ -3,26 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CollegeGuide Nepal - Find Your Perfect College</title>
+    <title>CollegeGuide Nepal - SPA Redirect</title>
     <script>
-      // GitHub Pages SPA redirect
-      // This script takes the current url and converts the path and query
-      // string into just a query string, and then redirects the browser
-      // to the new url with only a query string and hash fragment
+      // GitHub Pages SPA redirect: redirect to base with the path encoded in the query
       (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
+        var base = '/nepal-college-guide';
+        var path = l.pathname || '/';
+        // If we're already at the base root, let index.html load normally
+        if (path === base + '/' || path === base) {
+          return;
         }
-      }(window.location))
+        // Ensure we only take the path after the base
+        var suffix = path.indexOf(base) === 0 ? path.slice(base.length) : path;
+        if (suffix.startsWith('/')) suffix = suffix.slice(1);
+        // Encode existing query to avoid breaking our parser
+        var extra = l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '';
+        var target = base + '/?/' + suffix + extra + l.hash;
+        l.replace(target);
+      })(window.location);
     </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
