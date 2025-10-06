@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/header';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -13,6 +13,7 @@ import { TrendingUp, MapPin, Clock, Star } from 'lucide-react';
 
 export default function Home() {
   const navigate = useNavigate();
+  const resultsRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaculties, setSelectedFaculties] = useState<Faculty[]>([]);
   const [selectedAffiliations, setSelectedAffiliations] = useState<Affiliation[]>([]);
@@ -68,6 +69,12 @@ export default function Home() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handleSearchSubmit = () => {
+    if (resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const handleFacultyToggle = (faculty: Faculty) => {
@@ -131,6 +138,7 @@ export default function Home() {
             <div className="max-w-2xl mx-auto animate-fade-in-up animate-delay-200">
               <SearchBar 
                 onSearch={handleSearch}
+                onSearchSubmit={handleSearchSubmit}
                 placeholder="Search colleges, programs, or locations..."
               />
             </div>
@@ -190,7 +198,7 @@ export default function Home() {
             </div>
 
             {/* Results */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3" ref={resultsRef}>
               <div className="flex items-center justify-between mb-6 animate-fade-in-up">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">

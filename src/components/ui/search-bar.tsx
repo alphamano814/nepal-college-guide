@@ -5,16 +5,20 @@ import { Button } from '@/components/ui/button';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  onSearchSubmit?: () => void;
   placeholder?: string;
   className?: string;
 }
 
-export function SearchBar({ onSearch, placeholder = "Search colleges, programs, or locations...", className }: SearchBarProps) {
+export function SearchBar({ onSearch, onSearchSubmit, placeholder = "Search colleges, programs, or locations...", className }: SearchBarProps) {
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(query);
+    if (onSearchSubmit) {
+      onSearchSubmit();
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
