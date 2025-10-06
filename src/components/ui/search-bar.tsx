@@ -17,6 +17,12 @@ export function SearchBar({ onSearch, placeholder = "Search colleges, programs, 
     onSearch(query);
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+    onSearch(newQuery); // Trigger search on every keystroke
+  };
+
   return (
     <form onSubmit={handleSubmit} className={`relative flex items-center ${className}`}>
       <div className="relative flex-1">
@@ -25,7 +31,7 @@ export function SearchBar({ onSearch, placeholder = "Search colleges, programs, 
           type="text"
           placeholder={placeholder}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleChange}
           className="pl-10 pr-4 py-3 text-base bg-card text-card-foreground border-border focus:ring-primary focus:border-primary rounded-lg shadow-sm"
         />
       </div>
