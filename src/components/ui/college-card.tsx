@@ -33,7 +33,7 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
   };
 
   return (
-    <Card className="bg-gradient-card border-border hover:shadow-card transition-all duration-200 hover:scale-[1.02] group">
+    <Card className="bg-gradient-card border-border hover:shadow-card transition-all duration-300 hover:scale-[1.03] hover:-translate-y-2 group animate-fade-in-up">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -103,7 +103,7 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
           
           <Button 
             onClick={() => onViewDetails(college)}
-            className="w-full mt-3 bg-gradient-hero hover:opacity-90 transition-opacity"
+            className="w-full mt-3 bg-gradient-hero hover:opacity-90 transition-all duration-300 hover:scale-105 hover:shadow-lg"
           >
             View Details
           </Button>
