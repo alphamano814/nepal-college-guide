@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Star, Heart, Share2, Globe, Phone, Mail } from 'lucide-react';
 import { College } from '@/types/college';
 import { useToast } from '@/hooks/use-toast';
+import { SEO } from '@/components/SEO';
 
 export default function CollegeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -124,18 +125,57 @@ export default function CollegeDetail() {
     return `Rs. ${(amount / 1000).toFixed(0)}K`;
   };
 
+  const collegeStructuredData = college ? {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    "name": college.name,
+    "description": college.about,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": college.location.city,
+      "addressRegion": college.location.district,
+      "addressCountry": "NP"
+    },
+    "url": college.website,
+    "telephone": college.phone,
+    "aggregateRating": college.totalReviews > 0 ? {
+      "@type": "AggregateRating",
+      "ratingValue": college.averageRating,
+      "reviewCount": college.totalReviews,
+      "bestRating": "5",
+      "worstRating": "1"
+    } : undefined,
+    "offers": college.programs.map(program => ({
+      "@type": "Offer",
+      "category": program.faculty,
+      "name": program.program_name,
+      "price": program.fees,
+      "priceCurrency": "NPR"
+    }))
+  } : undefined;
+
   return (
     <div className="min-h-screen bg-background">
+      {college && (
+        <SEO 
+          title={`${college.name} - ${college.location.city} | CollegeGuide Nepal`}
+          description={`${college.about.substring(0, 150)}... View programs, fees, facilities and reviews for ${college.name} in ${college.location.city}, ${college.location.district}.`}
+          keywords={`${college.name}, ${college.location.city} college, ${college.affiliation}, ${college.programs.map(p => p.faculty).join(', ')}, Nepal education`}
+          type="article"
+          structuredData={collegeStructuredData}
+        />
+      )}
       <Header />
       
-      <div className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6" itemScope itemType="https://schema.org/EducationalOrganization">
         {/* Back Button */}
         <Button 
           variant="ghost" 
           onClick={() => navigate(-1)}
           className="mb-4"
+          aria-label="Go back to previous page"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
           Back
         </Button>
 
@@ -146,18 +186,22 @@ export default function CollegeDetail() {
               <div className="flex-shrink-0">
                 <img 
                   src={college.logo_url} 
-                  alt={college.name}
+                  alt={`${college.name} logo - ${college.affiliation} affiliated college in ${college.location.city}`}
                   className="w-24 h-24 rounded-lg object-cover"
+                  itemProp="logo"
                 />
               </div>
               
               <div className="flex-1">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-3xl font-bold text-foreground mb-2">{college.name}</h1>
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{college.location.city}, {college.location.district}</span>
+                    <h1 className="text-3xl font-bold text-foreground mb-2" itemProp="name">{college.name}</h1>
+                    <div className="flex items-center gap-2 mb-2" itemProp="address" itemScope itemType="https://schema.org/PostalAddress">
+                      <MapPin className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                      <span className="text-muted-foreground">
+                        <span itemProp="addressLocality">{college.location.city}</span>, <span itemProp="addressRegion">{college.location.district}</span>
+                        <meta itemProp="addressCountry" content="NP" />
+                      </span>
                     </div>
                     <Badge className={getAffiliationColor(college.affiliation)}>
                       {college.affiliation} Affiliated
@@ -169,22 +213,25 @@ export default function CollegeDetail() {
                       variant={isSaved ? "default" : "outline"}
                       size="sm"
                       onClick={() => setIsSaved(!isSaved)}
+                      aria-label={isSaved ? "Remove from saved" : "Save college"}
                     >
-                      <Heart className={`w-4 h-4 mr-2 ${isSaved ? 'fill-current' : ''}`} />
+                      <Heart className={`w-4 h-4 mr-2 ${isSaved ? 'fill-current' : ''}`} aria-hidden="true" />
                       {isSaved ? 'Saved' : 'Save'}
                     </Button>
-                    <Button variant="outline" size="sm">
-                      <Share2 className="w-4 h-4 mr-2" />
+                    <Button variant="outline" size="sm" aria-label="Share college">
+                      <Share2 className="w-4 h-4 mr-2" aria-hidden="true" />
                       Share
                     </Button>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{college.averageRating}</span>
-                    <span className="text-sm text-muted-foreground">({college.totalReviews} reviews)</span>
+                  <div className="flex items-center gap-1" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
+                    <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
+                    <span className="font-semibold" itemProp="ratingValue">{college.averageRating}</span>
+                    <span className="text-sm text-muted-foreground">(<span itemProp="reviewCount">{college.totalReviews}</span> reviews)</span>
+                    <meta itemProp="bestRating" content="5" />
+                    <meta itemProp="worstRating" content="1" />
                   </div>
                 </div>
               </div>
@@ -194,7 +241,7 @@ export default function CollegeDetail() {
 
         {/* Tabs Content */}
         <Tabs defaultValue="about" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-4" role="tablist" aria-label="College information tabs">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="programs">Programs</TabsTrigger>
             <TabsTrigger value="facilities">Facilities</TabsTrigger>
@@ -204,10 +251,10 @@ export default function CollegeDetail() {
           <TabsContent value="about">
             <Card>
               <CardHeader>
-                <CardTitle>About {college.name}</CardTitle>
+                <h2 className="text-2xl font-semibold">About {college.name}</h2>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed mb-6">
+                <p className="text-muted-foreground leading-relaxed mb-6" itemProp="description">
                   {college.about}
                 </p>
                 
@@ -240,7 +287,7 @@ export default function CollegeDetail() {
           <TabsContent value="programs">
             <Card>
               <CardHeader>
-                <CardTitle>Available Programs ({college.programs.length})</CardTitle>
+                <h2 className="text-2xl font-semibold">Available Programs ({college.programs.length})</h2>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -266,7 +313,7 @@ export default function CollegeDetail() {
           <TabsContent value="facilities">
             <Card>
               <CardHeader>
-                <CardTitle>Facilities</CardTitle>
+                <h2 className="text-2xl font-semibold">Facilities</h2>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -288,7 +335,7 @@ export default function CollegeDetail() {
           <TabsContent value="reviews">
             <Card>
               <CardHeader>
-                <CardTitle>Student Reviews</CardTitle>
+                <h2 className="text-2xl font-semibold">Student Reviews</h2>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
@@ -298,7 +345,7 @@ export default function CollegeDetail() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 }

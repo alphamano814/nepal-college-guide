@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, MapPin, Clock, Star } from 'lucide-react';
+import { SEO } from '@/components/SEO';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -120,12 +121,34 @@ export default function Home() {
     navigate(`/college/${college.id}`);
   };
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "CollegeGuide Nepal",
+    "description": "Search, compare and choose the right college in Nepal. Compare programs, fees, facilities and reviews across 1000+ colleges.",
+    "url": window.location.origin,
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": `${window.location.origin}/?search={search_term_string}`
+      },
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="CollegeGuide Nepal - Find Your Perfect College"
+        description="Search, compare and choose the right college in Nepal. Compare programs, fees, facilities and reviews across 1000+ colleges."
+        keywords="Nepal colleges, education, university, admission, TU, KU, engineering, medical, management"
+        structuredData={structuredData}
+      />
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-hero text-white py-16 overflow-hidden">
+      <section className="bg-gradient-hero text-white py-16 overflow-hidden" aria-label="Hero section with college search">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in-up">
@@ -162,12 +185,12 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <section className="py-12">
+      <main className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
             {/* Filters Sidebar */}
-            <div className="lg:col-span-1">
+            <aside className="lg:col-span-1" aria-label="Filter colleges">
               <Card className="sticky top-24 animate-slide-from-left">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold">Filter Colleges</CardTitle>
@@ -195,10 +218,10 @@ export default function Home() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+            </aside>
 
             {/* Results */}
-            <div className="lg:col-span-3" ref={resultsRef}>
+            <section className="lg:col-span-3" ref={resultsRef} aria-label="Search results">
               <div className="flex items-center justify-between mb-6 animate-fade-in-up">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">
@@ -237,13 +260,13 @@ export default function Home() {
                   <p className="text-muted-foreground">Try adjusting your search criteria or filters</p>
                 </div>
               )}
-            </div>
+            </section>
           </div>
         </div>
-      </section>
+      </main>
 
       {/* Stats Section */}
-      <section className="bg-muted py-12">
+      <section className="bg-muted py-12" aria-label="Platform statistics">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center transform transition-transform hover:scale-110 animate-fade-in-up">

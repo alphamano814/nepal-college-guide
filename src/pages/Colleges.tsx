@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, MapPin, Clock, Star } from 'lucide-react';
+import { SEO } from '@/components/SEO';
 
 export default function Colleges() {
   const navigate = useNavigate();
@@ -136,6 +137,11 @@ export default function Colleges() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Browse All Colleges in Nepal | CollegeGuide Nepal"
+        description="Explore and compare all colleges in Nepal. Filter by faculty, affiliation, location. Find the perfect college for your higher education in Nepal."
+        keywords="Nepal colleges, all colleges, browse colleges, engineering colleges, medical colleges, management colleges, TU, KU, PU"
+      />
       <Header />
       
       {/* Search Section */}

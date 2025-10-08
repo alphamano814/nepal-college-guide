@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { College } from '@/types/college';
+import { useEffect } from 'react';
 
 interface CollegeCardProps {
   college: College;
@@ -12,6 +13,50 @@ interface CollegeCardProps {
 }
 
 export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }: CollegeCardProps) {
+  // Add structured data for each college card
+  useEffect(() => {
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": college.name,
+      "description": college.about,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": college.location.city,
+        "addressRegion": college.location.district,
+        "addressCountry": "NP"
+      },
+      "url": college.website || `${window.location.origin}/college/${college.id}`,
+      "telephone": college.phone,
+      "aggregateRating": college.totalReviews > 0 ? {
+        "@type": "AggregateRating",
+        "ratingValue": college.averageRating,
+        "reviewCount": college.totalReviews,
+        "bestRating": "5",
+        "worstRating": "1"
+      } : undefined
+    };
+
+    const scriptId = `college-schema-${college.id}`;
+    let script = document.getElementById(scriptId) as HTMLScriptElement;
+    
+    if (!script) {
+      script = document.createElement('script') as HTMLScriptElement;
+      script.id = scriptId;
+      script.type = 'application/ld+json';
+      document.head.appendChild(script);
+    }
+    
+    script.textContent = JSON.stringify(structuredData);
+
+    return () => {
+      const scriptToRemove = document.getElementById(scriptId);
+      if (scriptToRemove) {
+        scriptToRemove.remove();
+      }
+    };
+  }, [college]);
+
   const formatFees = (fees: number) => {
     return new Intl.NumberFormat('ne-NP', { 
       style: 'currency', 
@@ -33,7 +78,7 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
   };
 
   return (
-    <Card className="bg-gradient-card border-border hover:shadow-card transition-all duration-300 hover:scale-[1.03] hover:-translate-y-2 group animate-fade-in-up">
+    <Card className="bg-gradient-card border-border hover:shadow-card transition-all duration-300 hover:scale-[1.03] hover:-translate-y-2 group animate-fade-in-up" itemScope itemType="https://schema.org/EducationalOrganization">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -41,20 +86,22 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
               {college.logo_url ? (
                 <img 
                   src={college.logo_url} 
-                  alt={`${college.name} logo`}
+                  alt={`${college.name} logo - College in ${college.location.city}, ${college.location.district}`}
                   className="w-full h-full object-cover rounded-lg"
+                  itemProp="logo"
                 />
               ) : (
-                <GraduationCap className="w-6 h-6 text-primary" />
+                <GraduationCap className="w-6 h-6 text-primary" aria-hidden="true" />
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors" itemProp="name">
                 {college.name}
               </h3>
-              <div className="flex items-center text-sm text-muted-foreground mt-1">
-                <MapPin className="w-3 h-3 mr-1" />
-                {college.location.city}, {college.location.district}
+              <div className="flex items-center text-sm text-muted-foreground mt-1" itemProp="address" itemScope itemType="https://schema.org/PostalAddress">
+                <MapPin className="w-3 h-3 mr-1" aria-hidden="true" />
+                <span itemProp="addressLocality">{college.location.city}</span>, <span itemProp="addressRegion">{college.location.district}</span>
+                <meta itemProp="addressCountry" content="NP" />
               </div>
               {college.phone && (
                 <div className="flex items-center text-sm text-muted-foreground mt-1">
@@ -83,14 +130,16 @@ export function CollegeCard({ college, onViewDetails, onSave, isSaved = false }:
             <Badge className={getAffiliationColor(college.affiliation)}>
               {college.affiliation}
             </Badge>
-            <div className="flex items-center text-sm">
-              <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
-              <span className="font-medium">{college.averageRating}</span>
-              <span className="text-muted-foreground ml-1">({college.totalReviews})</span>
+            <div className="flex items-center text-sm" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
+              <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" aria-hidden="true" />
+              <span className="font-medium" itemProp="ratingValue">{college.averageRating}</span>
+              <span className="text-muted-foreground ml-1">(<span itemProp="reviewCount">{college.totalReviews}</span>)</span>
+              <meta itemProp="bestRating" content="5" />
+              <meta itemProp="worstRating" content="1" />
             </div>
           </div>
           
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2" itemProp="description">
             {college.about}
           </p>
           
